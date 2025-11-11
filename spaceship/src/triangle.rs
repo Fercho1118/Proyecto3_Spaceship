@@ -2,6 +2,8 @@ use nalgebra_glm::{Vec3, dot};
 use crate::fragment::Fragment;
 use crate::vertex::Vertex;
 use crate::line::line;
+use crate::Uniforms;
+use crate::fragment_shader::{fragment_shader, ShaderType};
 
 pub fn _triangle(v1: &Vertex, v2: &Vertex, v3: &Vertex) -> Vec<Fragment> {
   let mut fragments = Vec::new();
@@ -13,16 +15,11 @@ pub fn _triangle(v1: &Vertex, v2: &Vertex, v3: &Vertex) -> Vec<Fragment> {
   fragments
 }
 
-pub fn triangle(v1: &Vertex, v2: &Vertex, v3: &Vertex) -> Vec<Fragment> {
+pub fn triangle(v1: &Vertex, v2: &Vertex, v3: &Vertex, uniforms: &Uniforms, shader_type: &ShaderType) -> Vec<Fragment> {
   let mut fragments = Vec::new();
   let (a, b, c) = (v1.transformed_position, v2.transformed_position, v3.transformed_position);
 
   let (min_x, min_y, max_x, max_y) = calculate_bounding_box(&a, &b, &c);
-
-  let light_dir1 = Vec3::new(0.0, 0.0, -1.0).normalize();
-  let light_dir2 = Vec3::new(0.0, 0.0, 1.0).normalize();
-  let light_dir3 = Vec3::new(1.0, 1.0, -1.0).normalize();
-  let light_dir4 = Vec3::new(-1.0, 1.0, -1.0).normalize();
 
   let triangle_area = edge_function(&a, &b, &c);
 
@@ -35,22 +32,18 @@ pub fn triangle(v1: &Vertex, v2: &Vertex, v3: &Vertex) -> Vec<Fragment> {
       if w1 >= 0.0 && w1 <= 1.0 && 
          w2 >= 0.0 && w2 <= 1.0 &&
          w3 >= 0.0 && w3 <= 1.0 {
-        let normal = v1.transformed_normal;
-        let normal = normal.normalize();
-
-        let intensity1 = dot(&normal, &light_dir1).abs() * 0.4;
-        let intensity2 = dot(&normal, &light_dir2).abs() * 0.4;
-        let intensity3 = dot(&normal, &light_dir3).abs() * 0.2;
-        let intensity4 = dot(&normal, &light_dir4).abs() * 0.2;
-        let ambient = 0.5;
         
-        let total_intensity = (intensity1 + intensity2 + intensity3 + intensity4 + ambient).min(1.0);
+        let normal = v1.transformed_normal * w1 + v2.transformed_normal * w2 + v3.transformed_normal * w3;
+        let normal = normal.normalize();
+        
+        let position = v1.position * w1 + v2.position * w2 + v3.position * w3;
+        
+        let depth = a.z * w1 + b.z * w2 + c.z * w3;
+        
+        let fragment = Fragment::new(x as f32, y as f32, v1.color, depth);
+        let color = fragment_shader(&fragment, uniforms, shader_type, &position, &normal);
 
-        let base_color = v1.color;
-        let lit_color = base_color * total_intensity;
-        let depth = a.z;
-
-        fragments.push(Fragment::new(x as f32, y as f32, lit_color, depth));
+        fragments.push(Fragment::new(x as f32, y as f32, color, depth));
       }
     }
   }

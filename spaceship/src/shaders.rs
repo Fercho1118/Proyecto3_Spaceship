@@ -9,13 +9,21 @@ pub fn vertex_shader(vertex: &Vertex, uniforms: &Uniforms) -> Vertex {
     vertex.position.z,
     1.0
   );
-  let transformed = uniforms.model_matrix * position;
+  
+  let transformed = uniforms.projection_matrix * uniforms.view_matrix * uniforms.model_matrix * position;
 
   let w = transformed.w;
-  let transformed_position = Vec3::new(
+  let ndc_position = Vec3::new(
     transformed.x / w,
     transformed.y / w,
     transformed.z / w
+  );
+
+  let screen_position = uniforms.viewport_matrix * Vec4::new(
+    ndc_position.x,
+    ndc_position.y,
+    ndc_position.z,
+    1.0
   );
 
   let model_mat3 = Mat3::new(
@@ -32,7 +40,7 @@ pub fn vertex_shader(vertex: &Vertex, uniforms: &Uniforms) -> Vertex {
     normal: vertex.normal,
     tex_coords: vertex.tex_coords,
     color: vertex.color,
-    transformed_position,
+    transformed_position: Vec3::new(screen_position.x, screen_position.y, screen_position.z),
     transformed_normal,
   }
 }
