@@ -12,6 +12,7 @@ pub enum ShaderType {
     IcePlanet,
     Moon,
     Rings,
+    Spaceship,  // Nuevo shader para la nave
 }
 
 pub fn fragment_shader(fragment: &Fragment, uniforms: &Uniforms, shader_type: &ShaderType, vertex_position: &Vec3, vertex_normal: &Vec3) -> Color {
@@ -23,6 +24,7 @@ pub fn fragment_shader(fragment: &Fragment, uniforms: &Uniforms, shader_type: &S
         ShaderType::IcePlanet => ice_planet_shader(fragment, uniforms, vertex_position, vertex_normal),
         ShaderType::Moon => moon_shader(fragment, uniforms, vertex_position, vertex_normal),
         ShaderType::Rings => rings_shader(fragment, uniforms, vertex_position, vertex_normal),
+        ShaderType::Spaceship => spaceship_shader(fragment, vertex_normal),
     }
 }
 
@@ -402,4 +404,17 @@ fn rings_shader(_fragment: &Fragment, uniforms: &Uniforms, vertex_position: &Vec
         (base_color.to_hex() >> 8 & 0xFF) as u8,
         (base_color.to_hex() & 0xFF) as u8,
     ) * intensity * gap
+}
+
+// Shader simple para la nave - usa sus colores originales con iluminación básica
+fn spaceship_shader(fragment: &Fragment, vertex_normal: &Vec3) -> Color {
+    // Usar el color del vértice 
+    let base_color = fragment.color.clone();
+    
+    // Iluminación simple direccional
+    let light_dir = Vec3::new(0.5, 0.7, -0.3).normalize();
+    let intensity = vertex_normal.dot(&light_dir).max(0.2) * 0.8 + 0.2; 
+    
+    // Aplicar intensidad de luz al color base
+    base_color * intensity
 }
